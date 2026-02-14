@@ -383,10 +383,9 @@ private fun OrderCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                val itemCount = order.items.sumOf { it.quantity.toInt() }
-                    .coerceAtLeast(order.items.size)
+                val totalQuantity = order.items.sumOf { it.quantity.toInt() }
                 Text(
-                    text = "${order.items.size} ${if (order.items.size == 1) "item" else "items"}",
+                    text = "$totalQuantity ${if (totalQuantity == 1) "item" else "items"}",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.outline
                     )

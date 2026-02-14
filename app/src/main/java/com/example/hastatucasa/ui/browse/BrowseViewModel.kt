@@ -69,8 +69,8 @@ class BrowseViewModel @Inject constructor(
         filteredProducts,
         _selectedCategory,
         _searchQuery,
-        _cartItems,
-    ) { categories, products, selectedCategory, searchQuery, cartItems ->
+        combine(_cartItems, _snackbarMessage) { cart, snackbar -> cart to snackbar },
+    ) { categories, products, selectedCategory, searchQuery, (cartItems, snackbarMessage) ->
         BrowseUiState(
             isLoading = false,
             categories = categories,
@@ -78,6 +78,7 @@ class BrowseViewModel @Inject constructor(
             selectedCategory = selectedCategory,
             searchQuery = searchQuery,
             cartItems = cartItems,
+            snackbarMessage = snackbarMessage,   // ← now actually populated
         )
     }.stateIn(
         scope = viewModelScope,
@@ -88,7 +89,11 @@ class BrowseViewModel @Inject constructor(
     // ─── Intents ──────────────────────────────────────────────────────────────
 
     fun onCategorySelected(category: String?) {
-        _selectedCategory.value = if (_selectedCategory.value == category) null else category
+        _selectedCategory.value = when {
+            category == null -> null                                    // "All" always clears
+            _selectedCategory.value == category -> null                 // re-tap deselects
+            else -> category                                            // new category selects
+        }
     }
 
     fun onSearchQueryChanged(query: String) {
