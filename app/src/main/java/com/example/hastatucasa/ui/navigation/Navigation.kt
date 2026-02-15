@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.hastatucasa.ui.browse.BrowseScreen
+import com.example.hastatucasa.ui.cart.CartScreen
 import com.example.hastatucasa.ui.profile.ProfileScreen
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -26,12 +27,31 @@ sealed class Screen(
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
+    val showInBottomNav: Boolean = true,
 ) {
-    object Browse : Screen("browse", "Shop",    Icons.Filled.Storefront,  Icons.Outlined.Storefront)
-    object Profile : Screen("profile", "Profile", Icons.Filled.Person,   Icons.Outlined.PersonOutline)
+    object Browse : Screen(
+        route = "browse",
+        label = "Shop",
+        selectedIcon = Icons.Filled.Storefront,
+        unselectedIcon = Icons.Outlined.Storefront,
+    )
+
+    object Cart : Screen(
+        route = "cart",
+        label = "Cart",
+        selectedIcon = Icons.Filled.ShoppingCart,
+        unselectedIcon = Icons.Outlined.ShoppingCart,
+    )
+
+    object Profile : Screen(
+        route = "profile",
+        label = "Profile",
+        selectedIcon = Icons.Filled.Person,
+        unselectedIcon = Icons.Outlined.PersonOutline,
+    )
 
     companion object {
-        val bottomNavItems = listOf(Browse, Profile)
+        val bottomNavItems = listOf(Browse, Cart, Profile)
     }
 }
 
@@ -69,11 +89,11 @@ fun HastaTuCasaNavHost(modifier: Modifier = Modifier) {
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        }
+                        },
                     )
                 }
             }
-        }
+        },
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -85,8 +105,31 @@ fun HastaTuCasaNavHost(modifier: Modifier = Modifier) {
             popExitTransition = { slideOutHorizontally { it } + fadeOut() },
         ) {
             composable(Screen.Browse.route) {
-                BrowseScreen()
+                BrowseScreen(
+                    onNavigateToCart = {
+                        navController.navigate(Screen.Cart.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
+
+            composable(Screen.Cart.route) {
+                CartScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onOrderPlaced = {
+                        // After checkout, go to Profile to see the new order
+                        navController.navigate(Screen.Profile.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
+                )
+            }
+
             composable(Screen.Profile.route) {
                 ProfileScreen()
             }

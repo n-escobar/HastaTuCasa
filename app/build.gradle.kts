@@ -73,4 +73,13 @@ dependencies {
     // ── Debug ─────────────────────────────────────────────────────────────────
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // ── Unit testing ──────────────────────────────────────────────────────────
+    testImplementation("junit:junit:4.13.2")
+
+    // Coroutines test utilities (runTest, TestDispatcher, advanceUntilIdle, etc.)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
+    // Turbine — Flow testing (awaitItem, test { }, expectNoEvents, etc.)
+    testImplementation("app.cash.turbine:turbine:1.1.0")
 }

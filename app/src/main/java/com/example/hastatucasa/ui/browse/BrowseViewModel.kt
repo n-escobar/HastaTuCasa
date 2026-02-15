@@ -3,6 +3,7 @@ package com.example.hastatucasa.ui.browse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hastatucasa.data.model.Product
+import com.example.hastatucasa.data.repository.CartRepository
 import com.example.hastatucasa.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,12 +11,11 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ data class BrowseUiState(
     val products: List<Product> = emptyList(),
     val selectedCategory: String? = null,
     val searchQuery: String = "",
-    val cartItems: Map<String, Int> = emptyMap(),  // productId -> quantity
+    val cartItems: Map<String, Int> = emptyMap(),
     val snackbarMessage: String? = null,
 )
 
@@ -37,12 +37,12 @@ val BrowseUiState.cartTotal: Int get() = cartItems.values.sum()
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class BrowseViewModel @Inject constructor(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val cartRepository: CartRepository,
 ) : ViewModel() {
 
     private val _selectedCategory = MutableStateFlow<String?>(null)
     private val _searchQuery = MutableStateFlow("")
-    private val _cartItems = MutableStateFlow<Map<String, Int>>(emptyMap())
     private val _snackbarMessage = MutableStateFlow<String?>(null)
 
     private val debouncedQuery = _searchQuery.debounce(300L)
@@ -55,7 +55,7 @@ class BrowseViewModel @Inject constructor(
                 else
                     productRepository.observeProducts()
             },
-        debouncedQuery
+        debouncedQuery,
     ) { products, query ->
         if (query.isBlank()) products
         else products.filter {
@@ -69,7 +69,10 @@ class BrowseViewModel @Inject constructor(
         filteredProducts,
         _selectedCategory,
         _searchQuery,
-        combine(_cartItems, _snackbarMessage) { cart, snackbar -> cart to snackbar },
+        combine(
+            cartRepository.observeCartItems(),
+            _snackbarMessage,
+        ) { cart, snackbar -> cart to snackbar },
     ) { categories, products, selectedCategory, searchQuery, (cartItems, snackbarMessage) ->
         BrowseUiState(
             isLoading = false,
@@ -78,21 +81,21 @@ class BrowseViewModel @Inject constructor(
             selectedCategory = selectedCategory,
             searchQuery = searchQuery,
             cartItems = cartItems,
-            snackbarMessage = snackbarMessage,   // ← now actually populated
+            snackbarMessage = snackbarMessage,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = BrowseUiState()
+        initialValue = BrowseUiState(),
     )
 
     // ─── Intents ──────────────────────────────────────────────────────────────
 
     fun onCategorySelected(category: String?) {
         _selectedCategory.value = when {
-            category == null -> null                                    // "All" always clears
-            _selectedCategory.value == category -> null                 // re-tap deselects
-            else -> category                                            // new category selects
+            category == null -> null
+            _selectedCategory.value == category -> null
+            else -> category
         }
     }
 
@@ -101,18 +104,15 @@ class BrowseViewModel @Inject constructor(
     }
 
     fun onAddToCart(product: Product) {
-        _cartItems.update { current ->
-            val existing = current[product.id] ?: 0
-            current + (product.id to existing + 1)
+        viewModelScope.launch {
+            cartRepository.addItem(product)
+            _snackbarMessage.value = "${product.name} added to cart"
         }
-        _snackbarMessage.value = "${product.name} added to cart"
     }
 
     fun onRemoveFromCart(productId: String) {
-        _cartItems.update { current ->
-            val existing = current[productId] ?: return@update current
-            if (existing <= 1) current - productId
-            else current + (productId to existing - 1)
+        viewModelScope.launch {
+            cartRepository.removeItem(productId)
         }
     }
 
