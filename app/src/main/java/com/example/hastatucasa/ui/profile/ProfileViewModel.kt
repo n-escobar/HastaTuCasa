@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ val ProfileUiState.activeOrderCount: Int
     get() = orders.count { !it.status.isTerminal() }
 
 // ─── ViewModel ────────────────────────────────────────────────────────────────
-
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,

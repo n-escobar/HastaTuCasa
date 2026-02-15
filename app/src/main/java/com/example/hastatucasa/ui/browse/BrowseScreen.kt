@@ -2,7 +2,6 @@ package com.example.hastatucasa.ui.browse
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.*
@@ -23,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -37,7 +35,7 @@ import com.example.hastatucasa.ui.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowseScreen(
-    onNavigateToCart: () -> Unit = {},
+    onNavigateToCart: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BrowseViewModel = hiltViewModel(),
 ) {
@@ -284,7 +282,7 @@ private fun CategoryChipRow(
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
 @Composable
-fun ProductCard(
+internal fun ProductCard(
     product: Product,
     cartQuantity: Int,
     onAddToCart: () -> Unit,

@@ -123,6 +123,15 @@ data class Order(
         get() = items
             .fold(BigDecimal.ZERO) { acc, item -> acc.add(item.subtotal) }
             .setScale(2, RoundingMode.HALF_UP)
+
+    companion object {
+        val DELIVERY_FEE: BigDecimal = BigDecimal("3.99")
+    }
+    val deliveryFee: BigDecimal
+        get() = DELIVERY_FEE
+
+    val grandTotal: BigDecimal
+        get() = totalPrice.add(deliveryFee).setScale(2, RoundingMode.HALF_UP)
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
@@ -33,7 +34,7 @@ data class CartLineItem(
     val subtotal: BigDecimal
         get() = product.effectivePrice
             .multiply(BigDecimal(quantity))
-            .setScale(2, java.math.RoundingMode.HALF_UP)
+            .setScale(2, RoundingMode.HALF_UP)
 
     val unitLabel: String
         get() = if (product.unit == ProductUnit.LB) "/lb" else "/ea"
@@ -51,13 +52,13 @@ data class CartUiState(
 ) {
     val subtotal: BigDecimal
         get() = lineItems.fold(BigDecimal.ZERO) { acc, item -> acc.add(item.subtotal) }
-            .setScale(2, java.math.RoundingMode.HALF_UP)
+            .setScale(2, RoundingMode.HALF_UP)
 
     val deliveryFee: BigDecimal
-        get() = if (lineItems.isEmpty()) BigDecimal.ZERO else BigDecimal("3.99")
+        get() = if (lineItems.isEmpty()) BigDecimal.ZERO else Order.DELIVERY_FEE
 
     val total: BigDecimal
-        get() = subtotal.add(deliveryFee).setScale(2, java.math.RoundingMode.HALF_UP)
+        get() = subtotal.add(deliveryFee).setScale(2, RoundingMode.HALF_UP)
 
     val isEmpty: Boolean get() = lineItems.isEmpty()
 

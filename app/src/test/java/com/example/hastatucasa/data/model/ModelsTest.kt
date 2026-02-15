@@ -3,6 +3,7 @@ package com.example.hastatucasa.data.model
 import org.junit.Assert.*
 import org.junit.Test
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 
 class ProductTest {
@@ -182,6 +183,26 @@ class OrderTest {
     fun `scheduled order with scheduledFor is valid`() {
         val o = order(type = OrderType.SCHEDULED, scheduledFor = Instant.now())
         assertEquals(OrderType.SCHEDULED, o.orderType)
+    }
+
+    @Test
+    fun `deliveryFee equals the domain constant`() {
+        val order = order()
+        assertEquals(Order.DELIVERY_FEE, order.deliveryFee)
+    }
+
+    @Test
+    fun `grandTotal is totalPrice plus deliveryFee`() {
+        val order = order(
+            items = listOf(
+                orderItem("3.59", "2"),  // 7.18
+                orderItem("5.49", "1"),  // 5.49
+            )
+        )
+        // totalPrice = 12.67, deliveryFee = 3.99, grandTotal = 16.66
+        val expected = order.totalPrice.add(Order.DELIVERY_FEE)
+            .setScale(2, RoundingMode.HALF_UP)
+        assertEquals(expected, order.grandTotal)
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

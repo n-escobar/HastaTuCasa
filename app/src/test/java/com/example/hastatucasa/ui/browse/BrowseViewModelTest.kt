@@ -18,6 +18,9 @@ import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import com.example.hastatucasa.data.repository.ProductRepository
+import com.example.hastatucasa.data.repository.CartRepository
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Tests for BrowseViewModel.
@@ -29,13 +32,15 @@ class BrowseViewModelTest {
     //20 TESTS IN THIS CLASS
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var fakeRepo: FakeProductRepository
+    private lateinit var fakeCartRepo: FakeCartRepository
     private lateinit var viewModel: BrowseViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakeRepo = FakeProductRepository()
-        //viewModel = BrowseViewModel(fakeRepo)
+        fakeCartRepo = FakeCartRepository()
+        viewModel = BrowseViewModel(fakeRepo, fakeCartRepo)
     }
 
     @After
@@ -375,4 +380,34 @@ private class FakeProductRepository : ProductRepository {
 
     override suspend fun searchProducts(query: String): List<Product> =
         _products.value.filter { it.name.contains(query, ignoreCase = true) }
+}
+
+private class FakeCartRepository : CartRepository {
+    private val _items = MutableStateFlow<Map<String, Int>>(emptyMap())
+
+    override fun observeCartItems(): Flow<Map<String, Int>> = _items.asStateFlow()
+
+    override fun getCartItemsSnapshot(): Map<String, Int> = _items.value
+
+    override suspend fun addItem(product: Product) {
+        _items.update { current ->
+            current + (product.id to (current[product.id] ?: 0) + 1)
+        }
+    }
+
+    override suspend fun removeItem(productId: String) {
+        _items.update { current ->
+            val existing = current[productId] ?: return@update current
+            if (existing <= 1) current - productId
+            else current + (productId to existing - 1)
+        }
+    }
+
+    override suspend fun removeItemCompletely(productId: String) {
+        _items.update { it - productId }
+    }
+
+    override suspend fun clearCart() {
+        _items.value = emptyMap()
+    }
 }

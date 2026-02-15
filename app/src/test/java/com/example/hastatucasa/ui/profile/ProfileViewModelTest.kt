@@ -267,21 +267,19 @@ class ProfileViewModelTest {
             awaitReadyState()
 
             viewModel.onStartEditProfile()
-            awaitItem()
+            awaitItem() // isEditingProfile = true
 
             viewModel.onSaveProfile("New Name", "New Address")
             testDispatcher.scheduler.advanceUntilIdle()
 
-            // May arrive in one or two emissions depending on combine timing
-            val states = mutableListOf<ProfileUiState>()
-            repeat(3) {
-                try { states.add(awaitItem()) } catch (_: Exception) {}
-            }
-            val finalState = states.lastOrNull { !it.isLoading }
+            // The combine() in ProfileViewModel emits once per state change.
+            // advanceUntilIdle() ensures all coroutines have completed before
+            // we assert, so exactly one more emission is guaranteed.
+            val finalState = awaitItem()
 
-            assertFalse(finalState?.isEditingProfile ?: true)
-            assertEquals("New Name", finalState?.user?.name)
-            assertEquals("New Address", finalState?.user?.deliveryAddress)
+            assertFalse(finalState.isEditingProfile)
+            assertEquals("New Name", finalState.user?.name)
+            assertEquals("New Address", finalState.user?.deliveryAddress)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -294,12 +292,9 @@ class ProfileViewModelTest {
             viewModel.onSaveProfile("Name", "Address")
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val emissions = mutableListOf<ProfileUiState>()
-            repeat(3) {
-                try { emissions.add(awaitItem()) } catch (_: Exception) {}
-            }
+            val finalState = awaitItem()
 
-            assertTrue(emissions.any { it.snackbarMessage == "Profile updated" })
+            assertEquals("Profile updated", finalState.snackbarMessage)
             cancelAndIgnoreRemainingEvents()
         }
     }
