@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -27,9 +26,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.hastatucasa.data.model.DeliverySlot
 import com.example.hastatucasa.ui.components.PriceText
 import com.example.hastatucasa.ui.components.QuantityStepper
 import com.example.hastatucasa.ui.components.SectionHeader
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +46,6 @@ fun CartScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Consume checkout success event
     LaunchedEffect(state.checkoutSuccess) {
         if (state.checkoutSuccess) {
             viewModel.onCheckoutSuccessConsumed()
@@ -59,6 +60,15 @@ fun CartScreen(
         }
     }
 
+    // Slot picker dialog
+    if (state.isSlotPickerOpen) {
+        SlotPickerDialog(
+            availableSlots = state.availableSlots,
+            onSlotConfirmed = viewModel::onSlotSelected,
+            onDismiss = viewModel::onSlotPickerDismissed,
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -69,21 +79,28 @@ fun CartScreen(
         },
         modifier = modifier,
     ) { padding ->
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            state.isLoading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (state.isEmpty) {
-            EmptyCartState(modifier = Modifier.padding(padding))
-        } else {
-            CartContent(
-                state = state,
-                onAddItem = { viewModel.onAddItem(it.product) },
-                onRemoveItem = { viewModel.onRemoveItem(it.product.id) },
-                onRemoveItemCompletely = { viewModel.onRemoveItemCompletely(it.product.id) },
-                onCheckout = viewModel::onCheckout,
-                contentPadding = padding,
-            )
+            state.isEmpty -> {
+                EmptyCartState(modifier = Modifier.padding(padding))
+            }
+            else -> {
+                CartContent(
+                    state = state,
+                    onAddItem = { viewModel.onAddItem(it.product) },
+                    onRemoveItem = { viewModel.onRemoveItem(it.product.id) },
+                    onRemoveItemCompletely = { viewModel.onRemoveItemCompletely(it.product.id) },
+                    onDeliverNow = viewModel::onDeliverNow,
+                    onScheduleDelivery = viewModel::onScheduleDelivery,
+                    onConfirmScheduled = viewModel::onConfirmScheduled,
+                    onChangeSlot = viewModel::onChangeSlot,
+                    contentPadding = padding,
+                )
+            }
         }
     }
 }
@@ -139,7 +156,10 @@ private fun CartContent(
     onAddItem: (CartLineItem) -> Unit,
     onRemoveItem: (CartLineItem) -> Unit,
     onRemoveItemCompletely: (CartLineItem) -> Unit,
-    onCheckout: () -> Unit,
+    onDeliverNow: () -> Unit,
+    onScheduleDelivery: () -> Unit,
+    onConfirmScheduled: () -> Unit,
+    onChangeSlot: () -> Unit,
     contentPadding: PaddingValues,
 ) {
     Column(
@@ -147,7 +167,6 @@ private fun CartContent(
             .fillMaxSize()
             .padding(contentPadding),
     ) {
-        // Item list — takes available space above the fixed summary card
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
@@ -177,10 +196,12 @@ private fun CartContent(
             }
         }
 
-        // Sticky order summary + checkout
         OrderSummaryCard(
             state = state,
-            onCheckout = onCheckout,
+            onDeliverNow = onDeliverNow,
+            onScheduleDelivery = onScheduleDelivery,
+            onConfirmScheduled = onConfirmScheduled,
+            onChangeSlot = onChangeSlot,
         )
     }
 }
@@ -208,7 +229,6 @@ private fun CartLineItemCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Thumbnail
             Box(
                 modifier = Modifier
                     .size(72.dp)
@@ -223,7 +243,6 @@ private fun CartLineItemCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                // Discount badge
                 if (lineItem.product.hasDiscount) {
                     Surface(
                         modifier = Modifier
@@ -244,7 +263,6 @@ private fun CartLineItemCard(
                 }
             }
 
-            // Name + price + stepper
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = lineItem.product.name,
@@ -267,7 +285,7 @@ private fun CartLineItemCard(
                         quantity = lineItem.quantity,
                         onIncrement = onAdd,
                         onDecrement = onRemove,
-                        minQuantity = 1,  // use delete button to remove entirely
+                        minQuantity = 1,
                     )
                     Text(
                         text = "$${lineItem.subtotal}",
@@ -279,7 +297,6 @@ private fun CartLineItemCard(
                 }
             }
 
-            // Delete button
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier.size(32.dp),
@@ -313,7 +330,9 @@ private fun DeliveryAddressRow(address: String) {
         Icon(
             Icons.Default.LocationOn,
             contentDescription = null,
-            modifier = Modifier.size(18.dp).padding(top = 1.dp),
+            modifier = Modifier
+                .size(18.dp)
+                .padding(top = 1.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
         Column {
@@ -340,7 +359,10 @@ private fun DeliveryAddressRow(address: String) {
 @Composable
 private fun OrderSummaryCard(
     state: CartUiState,
-    onCheckout: () -> Unit,
+    onDeliverNow: () -> Unit,
+    onScheduleDelivery: () -> Unit,
+    onConfirmScheduled: () -> Unit,
+    onChangeSlot: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -379,54 +401,241 @@ private fun OrderSummaryCard(
 
             Spacer(Modifier.height(4.dp))
 
-            Button(
-                onClick = onCheckout,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                enabled = !state.isCheckingOut && !state.isEmpty,
+            // Selected slot confirmation row
+            AnimatedVisibility(
+                visible = state.selectedSlot != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
             ) {
-                AnimatedContent(
-                    targetState = state.isCheckingOut,
-                    transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
-                    label = "checkout_button",
-                ) { checking ->
-                    if (checking) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Text("Placing order…")
-                        }
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.ShoppingBag,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                text = "Place Order · $${state.total}",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            )
-                        }
-                    }
+                state.selectedSlot?.let { slot ->
+                    SelectedSlotRow(
+                        slot = slot,
+                        onChangeSlot = onChangeSlot,
+                    )
                 }
+            }
+
+            // Delivery mode buttons
+            DeliveryModeButtons(
+                state = state,
+                onDeliverNow = onDeliverNow,
+                onScheduleDelivery = onScheduleDelivery,
+                onConfirmScheduled = onConfirmScheduled,
+            )
+        }
+    }
+}
+
+// ─── Selected Slot Row ────────────────────────────────────────────────────────
+
+@Composable
+private fun SelectedSlotRow(
+    slot: DeliverySlot,
+    onChangeSlot: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Column {
+                    Text(
+                        text = slot.label,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    )
+                    Text(
+                        text = slot.date.format(
+                            DateTimeFormatter.ofPattern("EEEE, MMM d")
+                        ),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        )
+                    )
+                }
+            }
+            TextButton(
+                onClick = onChangeSlot,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "Change",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                )
             }
         }
     }
 }
+
+// ─── Delivery Mode Buttons ────────────────────────────────────────────────────
+
+@Composable
+private fun DeliveryModeButtons(
+    state: CartUiState,
+    onDeliverNow: () -> Unit,
+    onScheduleDelivery: () -> Unit,
+    onConfirmScheduled: () -> Unit,
+) {
+    val isDisabled = state.isCheckingOut || state.isEmpty
+
+    if (state.selectedSlot != null) {
+        // Slot chosen → show "Confirm Scheduled" + "Deliver Now" side by side
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            OutlinedButton(
+                onClick = onDeliverNow,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !isDisabled,
+            ) {
+                AnimatedCheckoutContent(isCheckingOut = false) {
+                    Icon(
+                        Icons.Default.FlashOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Now",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                        )
+                    )
+                }
+            }
+            Button(
+                onClick = onConfirmScheduled,
+                modifier = Modifier
+                    .weight(2f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !isDisabled,
+            ) {
+                AnimatedCheckoutContent(isCheckingOut = state.isCheckingOut) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Place Scheduled · $${state.total}",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                        )
+                    )
+                }
+            }
+        }
+    } else {
+        // No slot chosen → "Deliver Now" (primary) + "Schedule" (outlined)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = onDeliverNow,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !isDisabled,
+            ) {
+                AnimatedCheckoutContent(isCheckingOut = state.isCheckingOut) {
+                    Icon(
+                        Icons.Default.FlashOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Deliver Now",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                        )
+                    )
+                }
+            }
+            OutlinedButton(
+                onClick = onScheduleDelivery,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !isDisabled,
+            ) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Schedule",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedCheckoutContent(
+    isCheckingOut: Boolean,
+    content: @Composable RowScope.() -> Unit,
+) {
+    AnimatedContent(
+        targetState = isCheckingOut,
+        transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
+        label = "checkout_content",
+    ) { checking ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            if (checking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                content()
+            }
+        }
+    }
+}
+
+// ─── Summary Row ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun SummaryRow(label: String, value: String) {
@@ -447,7 +656,7 @@ private fun SummaryRow(label: String, value: String) {
     }
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
+// ─── Empty Cart State ─────────────────────────────────────────────────────────
 
 @Composable
 private fun EmptyCartState(modifier: Modifier = Modifier) {
