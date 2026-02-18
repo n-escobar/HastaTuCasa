@@ -59,7 +59,6 @@ class ProfileViewModel @Inject constructor(
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     private val _isEditingProfile = MutableStateFlow(false)
 
-    @Suppress("OPT_IN_USAGE")
     private val orders = userRepository.observeCurrentUser()
         .filterNotNull()
         .flatMapLatest { user ->

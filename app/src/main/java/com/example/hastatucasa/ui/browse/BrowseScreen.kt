@@ -88,7 +88,7 @@ private fun BrowseTopBar(
         title = {
             Column {
                 Text(
-                    text = "GrocerGo",
+                    text = "HastaTuCasa",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary,

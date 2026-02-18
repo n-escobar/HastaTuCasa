@@ -87,7 +87,7 @@ class ProductTest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class OrderItemTest {
-    // 7 TESTS IN THIS CLASS
+    // 9 TESTS IN THIS CLASS
     @Test
     fun `subtotal is price times quantity`() {
         val item = item(price = "3.59", qty = "2")
