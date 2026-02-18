@@ -108,7 +108,11 @@ fun HastaTuCasaNavHost(modifier: Modifier = Modifier) {
                 BrowseScreen(
                     onNavigateToCart = {
                         navController.navigate(Screen.Cart.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
                             launchSingleTop = true
+                            restoreState = true
                         }
                     },
                 )
