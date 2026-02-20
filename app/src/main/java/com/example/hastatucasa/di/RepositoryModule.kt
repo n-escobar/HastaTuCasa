@@ -1,11 +1,13 @@
 package com.example.hastatucasa.di
 
+import com.example.hastatucasa.data.repository.CartRepository
+import com.example.hastatucasa.data.repository.DelivererOrderRepository
 import com.example.hastatucasa.data.repository.FakeCartRepository
+import com.example.hastatucasa.data.repository.FakeDelivererOrderRepository
 import com.example.hastatucasa.data.repository.FakeOrderRepository
 import com.example.hastatucasa.data.repository.FakeProductRepository
 import com.example.hastatucasa.data.repository.FakeSlotRepository
 import com.example.hastatucasa.data.repository.FakeUserRepository
-import com.example.hastatucasa.data.repository.CartRepository
 import com.example.hastatucasa.data.repository.OrderRepository
 import com.example.hastatucasa.data.repository.ProductRepository
 import com.example.hastatucasa.data.repository.SlotRepository
@@ -20,23 +22,24 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindProductRepository(impl: FakeProductRepository): ProductRepository
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindOrderRepository(impl: FakeOrderRepository): OrderRepository
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindUserRepository(impl: FakeUserRepository): UserRepository
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindCartRepository(impl: FakeCartRepository): CartRepository
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindSlotRepository(impl: FakeSlotRepository): SlotRepository
+
+    // ── Deliverer-specific ────────────────────────────────────────────────────
+    @Binds @Singleton
+    abstract fun bindDelivererOrderRepository(
+        impl: FakeDelivererOrderRepository,
+    ): DelivererOrderRepository
 }

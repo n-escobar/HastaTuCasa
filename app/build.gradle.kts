@@ -18,6 +18,24 @@ android {
         versionName = "1.0"
     }
 
+    // ── Product Flavors ───────────────────────────────────────────────────────
+    flavorDimensions += "audience"
+
+    productFlavors {
+        create("shopper") {
+            dimension = "audience"
+            applicationIdSuffix = ".shopper"
+            versionNameSuffix = "-shopper"
+            resValue("string", "app_flavor_label", "HastaTuCasa")
+        }
+        create("deliverer") {
+            dimension = "audience"
+            applicationIdSuffix = ".deliverer"
+            versionNameSuffix = "-deliverer"
+            resValue("string", "app_flavor_label", "HastaTuCasa · Deliverer")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -39,6 +57,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
