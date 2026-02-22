@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "510170160684",
+    "project_id": "hastatucasa-e4c0d",
+    "storage_bucket": "hastatucasa-e4c0d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:510170160684:android:183f1f9a14b4cb0baf7b89",
+        "android_client_info": {
+          "package_name": "com.example.hastatucasa.deliverer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9onor-8stoz0BOtgnRgNn1LspqpJI-AM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:510170160684:android:a610abca35348cfeaf7b89",
+        "android_client_info": {
+          "package_name": "com.example.hastatucasa.shopper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9onor-8stoz0BOtgnRgNn1LspqpJI-AM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

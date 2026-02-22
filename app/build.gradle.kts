@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -101,4 +102,12 @@ dependencies {
 
     // Turbine — Flow testing (awaitItem, test { }, expectNoEvents, etc.)
     testImplementation("app.cash.turbine:turbine:1.1.0")
+
+    //Firebase
+    val firebaseBom = platform(libs.firebase.bom)
+    implementation(firebaseBom)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.coroutines)
 }

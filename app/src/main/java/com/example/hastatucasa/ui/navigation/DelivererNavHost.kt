@@ -25,6 +25,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.hastatucasa.data.model.UserRole
+import com.example.hastatucasa.ui.auth.AuthScreen
 import com.example.hastatucasa.ui.deliverer.DelivererOrdersScreen
 import com.example.hastatucasa.ui.profile.ProfileScreen
 
@@ -98,13 +100,23 @@ fun DelivererNavHost(modifier: Modifier = Modifier) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = DelivererScreen.Orders.route,
+            startDestination = "auth",
             modifier = Modifier.padding(innerPadding),
             enterTransition = { slideInHorizontally { it } + fadeIn() },
             exitTransition = { slideOutHorizontally { -it } + fadeOut() },
             popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
             popExitTransition = { slideOutHorizontally { it } + fadeOut() },
         ) {
+            composable("auth") {
+                AuthScreen(
+                    role = UserRole.SHOPPER,
+                    onAuthSuccess = {
+                        navController.navigate("browse") {
+                            popUpTo("auth") { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(DelivererScreen.Orders.route) {
                 DelivererOrdersScreen()
             }
