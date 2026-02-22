@@ -11,6 +11,8 @@ import com.example.hastatucasa.data.repository.OrderRepository
 import com.example.hastatucasa.data.repository.SlotRepository
 import com.example.hastatucasa.data.repository.FakeSlotRepository
 import com.example.hastatucasa.data.repository.UserRepository
+import com.example.hastatucasa.data.repository.FakeProductRepository
+import com.example.hastatucasa.data.repository.ProductRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -92,4 +94,9 @@ abstract class RepositoryModule {
     abstract fun bindSlotRepository(
         impl: FakeSlotRepository,
     ): SlotRepository
+
+    @Binds @Singleton
+    abstract fun bindProductRepository(
+        impl: FakeProductRepository,
+    ): ProductRepository
 }

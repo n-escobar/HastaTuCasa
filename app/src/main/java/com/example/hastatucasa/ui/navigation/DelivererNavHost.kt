@@ -109,7 +109,7 @@ fun DelivererNavHost(modifier: Modifier = Modifier) {
         ) {
             composable("auth") {
                 AuthScreen(
-                    role = UserRole.SHOPPER,
+                    role = UserRole.DELIVERER,
                     onAuthSuccess = {
                         navController.navigate("browse") {
                             popUpTo("auth") { inclusive = true }
